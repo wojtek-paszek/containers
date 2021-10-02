@@ -1,0 +1,39 @@
+# escape=`
+# SQL Server 2017 Windows container dockerfile
+# Based on the official Windows Server Core 2019 image
+# https://hub.docker.com/_/microsoft-windows-servercore
+
+ARG VERSION=1809
+FROM mcr.microsoft.com/windows/servercore:$VERSION
+
+# SQL Server Download Links:
+ARG EXE=https://go.microsoft.com/fwlink/?linkid=840945
+ARG BOX=https://go.microsoft.com/fwlink/?linkid=840944
+
+# Server Instance Collation
+ARG SQL_COLLATION=SQL_Latin1_General_CP1_CI_AS
+
+ENV ACCEPT_EULA="Y" `
+    SA_PASSWORD="_"
+
+SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
+
+# Install SQL Server
+RUN Invoke-WebRequest -Uri $env:BOX -OutFile SQL.box ; `
+    Invoke-WebRequest -Uri $env:EXE -OutFile SQL.exe ; `
+    Start-Process -Wait -FilePath .\SQL.exe -ArgumentList /qs, /x:setup ; `
+    .\setup\setup.exe /q /ACTION=Install /INSTANCENAME=MSSQLSERVER /SQLCOLLATION=$env:SQL_COLLATION /FEATURES=SQLEngine /UPDATEENABLED=0 /SQLSVCACCOUNT='NT AUTHORITY\NETWORK SERVICE' /SQLSYSADMINACCOUNTS='BUILTIN\ADMINISTRATORS' /TCPENABLED=1 /NPENABLED=0 /IACCEPTSQLSERVERLICENSETERMS ; `
+    Remove-Item -Recurse -Force SQL.exe, SQL.box, setup
+
+RUN stop-service MSSQLSERVER ; `
+    set-itemproperty -path 'HKLM:\software\microsoft\microsoft sql server\mssql14.MSSQLSERVER\mssqlserver\supersocketnetlib\tcp\ipall' -name tcpdynamicports -value '' ; `
+    set-itemproperty -path 'HKLM:\software\microsoft\microsoft sql server\mssql14.MSSQLSERVER\mssqlserver\supersocketnetlib\tcp\ipall' -name tcpport -value 1433 ; `
+    set-itemproperty -path 'HKLM:\software\microsoft\microsoft sql server\mssql14.MSSQLSERVER\mssqlserver' -name LoginMode -value 2 ;
+
+HEALTHCHECK CMD [ "sqlcmd", "-Q", "SELECT 1" ]
+
+# Start SQL Server
+COPY StartSqlServer.ps1 /
+WORKDIR /
+
+CMD .\StartSqlServer -SA_PASSWORD $env:SA_PASSWORD -ACCEPT_EULA $env:ACCEPT_EULA -Verbose
