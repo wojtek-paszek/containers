@@ -1,0 +1,1 @@
+docker build . -t pachoo/mssql-server-windows-developer:1809
