@@ -1,9 +1,9 @@
 # escape=`
 # SQL Server 2017 Windows container dockerfile
-# Based on the official Windows Server Core 2019 image
+# Based on the official Windows Server Core 2022 image
 # https://hub.docker.com/_/microsoft-windows-servercore
 
-ARG VERSION=1809
+ARG VERSION=ltsc2022
 FROM mcr.microsoft.com/windows/servercore:$VERSION
 
 # SQL Server Download Links:
