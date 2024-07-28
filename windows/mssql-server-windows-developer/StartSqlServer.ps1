@@ -1,5 +1,6 @@
-# The script sets the SA password and starts the SQL Server
-# Prepares paths for SQL Server database files as well
+# The script sets:
+# - the SA password and starts the SQL Server
+# - paths of SQL Server database files
 
 param(
     [Parameter(Mandatory=$false)]
@@ -17,7 +18,7 @@ if ($ACCEPT_EULA -ne "Y" -And $ACCEPT_EULA -ne "y")
     exit 1
 }
 
-Write-Verbose "Preparing paths for SQL database storage"
+Write-Verbose "Preparing paths of database files"
 New-Item -Force -ItemType Directory -Path "C:\MSSQL"
 New-Item -Force -ItemType Directory -Path "C:\MSSQL\Data"
 New-Item -Force -ItemType Directory -Path "C:\MSSQL\Log"
@@ -35,8 +36,8 @@ Write-Verbose "Changing SA login credentials"
 $sqlcmd = "ALTER LOGIN sa WITH password=" + "'" + $sa_password + "'" + "; ALTER LOGIN sa ENABLE;"
 & sqlcmd -Q $sqlcmd
 
-Write-Verbose "Setting paths for SQL database storage"
-$setPathsCommand = 
+Write-Verbose "Setting database files paths"
+$setPathsCommand =
    "EXEC xp_instance_regwrite
         N'HKEY_LOCAL_MACHINE',
         N'Software\Microsoft\MSSQLServer\MSSQLServer',
@@ -61,10 +62,10 @@ $setPathsCommand =
 
 Write-Verbose "Started SQL Server"
 
-$lastCheck = (Get-Date).AddSeconds(-2) 
-while ($true) 
-{ 
-    Get-EventLog -LogName Application -Source "MSSQL*" -After $lastCheck | Select-Object TimeGenerated, EntryType, Message	 
-    $lastCheck = Get-Date 
-    Start-Sleep -Seconds 2 
+$lastCheck = (Get-Date).AddSeconds(-2)
+while ($true)
+{
+    Get-EventLog -LogName Application -Source "MSSQL*" -After $lastCheck | Select-Object TimeGenerated, EntryType, Message
+    $lastCheck = Get-Date
+    Start-Sleep -Seconds 2
 }
